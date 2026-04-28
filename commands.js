@@ -17,6 +17,22 @@ function vehiculoOption(option) {
     .setAutocomplete(true);
 }
 
+const categorias = [
+  { name: "H-50", value: "H50" },
+  { name: "Supervisora", value: "SUPERVISORA" },
+  { name: "GAC", value: "GAC" },
+  { name: "UPR", value: "UPR" },
+  { name: "GOES", value: "GOES" },
+  { name: "GEO", value: "GEO" },
+  { name: "UIP", value: "UIP" },
+  { name: "FDF", value: "FDF" },
+  { name: "CGPJ", value: "CGPJ" },
+  { name: "CGPC", value: "CGPC" },
+  { name: "CGI", value: "CGI" },
+  { name: "UAI", value: "UAI" },
+  { name: "UEGC", value: "UEGC" }
+];
+
 const commands = [
   new SlashCommandBuilder()
     .setName("ping")
@@ -32,18 +48,19 @@ const commands = [
         .addStringOption(option =>
           option.setName("nombre").setDescription("Nombre de la unidad").setRequired(true)
         )
+        .addStringOption(option =>
+          option
+            .setName("categoria")
+            .setDescription("Categoría de la unidad")
+            .setRequired(true)
+            .addChoices(...categorias)
+        )
     )
     .addSubcommand(sub =>
-      sub
-        .setName("eliminar")
-        .setDescription("Eliminar una unidad")
-        .addStringOption(unidadOption)
+      sub.setName("eliminar").setDescription("Eliminar una unidad").addStringOption(unidadOption)
     )
     .addSubcommand(sub =>
-      sub
-        .setName("ver")
-        .setDescription("Ver una unidad")
-        .addStringOption(unidadOption)
+      sub.setName("ver").setDescription("Ver una unidad").addStringOption(unidadOption)
     )
     .addSubcommand(sub =>
       sub
@@ -86,16 +103,10 @@ const commands = [
         )
     )
     .addSubcommand(sub =>
-      sub
-        .setName("eliminar")
-        .setDescription("Eliminar vehículo")
-        .addStringOption(vehiculoOption)
+      sub.setName("eliminar").setDescription("Eliminar vehículo").addStringOption(vehiculoOption)
     )
     .addSubcommand(sub =>
-      sub
-        .setName("ver")
-        .setDescription("Ver vehículo")
-        .addStringOption(vehiculoOption)
+      sub.setName("ver").setDescription("Ver vehículo").addStringOption(vehiculoOption)
     ),
 
   new SlashCommandBuilder()
