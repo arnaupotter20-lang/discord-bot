@@ -27,6 +27,26 @@ const commands = [
     .setDescription("Gestionar unidades")
     .addSubcommand(sub =>
       sub
+        .setName("crear")
+        .setDescription("Crear una unidad")
+        .addStringOption(option =>
+          option.setName("nombre").setDescription("Nombre de la unidad").setRequired(true)
+        )
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName("eliminar")
+        .setDescription("Eliminar una unidad")
+        .addStringOption(unidadOption)
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName("ver")
+        .setDescription("Ver una unidad")
+        .addStringOption(unidadOption)
+    )
+    .addSubcommand(sub =>
+      sub
         .setName("asignar")
         .setDescription("Asignar persona a una unidad")
         .addUserOption(option =>
@@ -49,12 +69,6 @@ const commands = [
         .setDescription("Asignar vehículo a una unidad")
         .addStringOption(unidadOption)
         .addStringOption(vehiculoOption)
-    )
-    .addSubcommand(sub =>
-      sub
-        .setName("ver")
-        .setDescription("Ver una unidad")
-        .addStringOption(unidadOption)
     ),
 
   new SlashCommandBuilder()
@@ -94,7 +108,7 @@ const commands = [
       sub.setName("actualizar").setDescription("Actualizar plantilla")
     )
     .addSubcommand(sub =>
-      sub.setName("limpiar").setDescription("Limpiar personas y vehículos de la plantilla")
+      sub.setName("limpiar").setDescription("Limpiar personas y vehículos")
     )
 ].map(command => command.toJSON());
 
