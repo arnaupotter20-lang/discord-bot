@@ -1,132 +1,164 @@
 require("dotenv").config();
-const { REST, Routes, SlashCommandBuilder } = require("discord.js");
+const { Client, GatewayIntentBits } = require("discord.js");
 
-function unidadOption(opt) {
-  return opt
-    .setName("unidad")
-    .setDescription("Selecciona la unidad")
-    .setRequired(true)
-    .setAutocomplete(true);
-}
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds]
+});
 
-function vehiculoOption(opt) {
-  return opt
-    .setName("vehiculo")
-    .setDescription("Selecciona el vehículo")
-    .setRequired(true)
-    .setAutocomplete(true);
-}
+// UNIDADES FIJAS
+const unidades = {
+  GOES: { miembros: [], vehiculo: null },
+  GEO: { miembros: [], vehiculo: null },
+  UIP: { miembros: [], vehiculo: null },
+  UPR: { miembros: [], vehiculo: null },
+  FDF: { miembros: [], vehiculo: null },
+  CGPJ: { miembros: [], vehiculo: null },
+  CGPC: { miembros: [], vehiculo: null },
+  CGI: { miembros: [], vehiculo: null },
+  UAI: { miembros: [], vehiculo: null },
+  UEGC: { miembros: [], vehiculo: null }
+};
 
-const commands = [
-  new SlashCommandBuilder()
-    .setName("ping")
-    .setDescription("Comprueba si el bot responde"),
+const vehiculos = {};
 
-  new SlashCommandBuilder()
-    .setName("unidad")
-    .setDescription("Gestionar unidades")
-    .addSubcommand(sub =>
-      sub
-        .setName("crear")
-        .setDescription("Crear unidad")
-        .addStringOption(opt =>
-          opt.setName("nombre").setDescription("Nombre, ejemplo Z-01").setRequired(true)
-        )
-        .addStringOption(opt =>
-          opt
-            .setName("categoria")
-            .setDescription("Categoría")
-            .setRequired(true)
-            .addChoices(
-              { name: "H-50", value: "H50" },
-              { name: "Unidades Supervisoras", value: "SUPERVISORAS" },
-              { name: "Unidades G.A.C", value: "GAC" }
-            )
-        )
-    )
-    .addSubcommand(sub =>
-      sub.setName("ver").setDescription("Ver unidad").addStringOption(unidadOption)
-    )
-    .addSubcommand(sub =>
-      sub.setName("eliminar").setDescription("Eliminar unidad").addStringOption(unidadOption)
-    )
-    .addSubcommand(sub =>
-      sub
-        .setName("asignar")
-        .setDescription("Asignar persona a unidad")
-        .addUserOption(opt =>
-          opt.setName("usuario").setDescription("Usuario").setRequired(true)
-        )
-        .addStringOption(unidadOption)
-    )
-    .addSubcommand(sub =>
-      sub
-        .setName("quitar")
-        .setDescription("Quitar persona de unidad")
-        .addUserOption(opt =>
-          opt.setName("usuario").setDescription("Usuario").setRequired(true)
-        )
-        .addStringOption(unidadOption)
-    )
-    .addSubcommand(sub =>
-      sub
-        .setName("vehiculo")
-        .setDescription("Asignar vehículo a unidad")
-        .addStringOption(unidadOption)
-        .addStringOption(vehiculoOption)
-    ),
+// PLANTILLA
+let plantillaMsg = null;
 
-  new SlashCommandBuilder()
-    .setName("vehiculo")
-    .setDescription("Gestionar vehículos")
-    .addSubcommand(sub =>
-      sub
-        .setName("crear")
-        .setDescription("Crear vehículo")
-        .addStringOption(opt =>
-          opt.setName("nombre").setDescription("Nombre del vehículo").setRequired(true)
-        )
-        .addStringOption(opt =>
-          opt.setName("descripcion").setDescription("Descripción").setRequired(true)
-        )
-    )
-    .addSubcommand(sub =>
-      sub.setName("ver").setDescription("Ver vehículo").addStringOption(vehiculoOption)
-    )
-    .addSubcommand(sub =>
-      sub.setName("eliminar").setDescription("Eliminar vehículo").addStringOption(vehiculoOption)
-    )
-    .addSubcommand(sub =>
-      sub
-        .setName("imagen")
-        .setDescription("Añadir imagen a vehículo")
-        .addStringOption(vehiculoOption)
-        .addAttachmentOption(opt =>
-          opt.setName("imagen").setDescription("Imagen").setRequired(true)
-        )
-    ),
+function generarPlantilla() {
+  let texto = "🚔 **PLANTILLA DE SERVICIO**\n\n";
 
-  new SlashCommandBuilder()
-    .setName("plantilla")
-    .setDescription("Generar plantilla de unidades")
-    .addSubcommand(sub =>
-      sub.setName("generar").setDescription("Generar plantilla completa")
-    )
-].map(command => command.toJSON());
+  for (const [nombre, unidad] of Object.entries(unidades)) {
+    texto += `**${nombre}**\n`;
 
-const rest = new REST({ version: "10" }).setToken(process.env.Discord_Token);
+    if (unidad.miembros.length) {
+      unidad.miembros.forEach(m => {
+        texto += `• ${m}\n`;
+      });
+    } else {
+      texto += `• Sin miembros\n`;
+    }
 
-(async () => {
-  try {
-    console.log("Registrando comandos...");
-
-    await rest.put(
-      Routes.applicationGuildCommands(process.env.Client_ID, process.env.Guild_ID),
-      { body: commands }
-    );
-
-    console.log("Comandos registrados correctamente.");
-  } catch (error) {
-    console.error(error);
+    texto += `🚗 ${unidad.vehiculo || "Sin vehículo"}\n\n`;
   }
-})();
+
+  return texto;
+}
+
+async function actualizarPlantilla() {
+  if (!plantillaMsg) return;
+  await plantillaMsg.edit(generarPlantilla());
+}
+
+client.once("ready", () => {
+  console.log(`Bot listo como ${client.user.tag}`);
+});
+
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+
+  const { commandName, options } = interaction;
+
+  // PING
+  if (commandName === "ping") {
+    return interaction.reply("Pong 🟢");
+  }
+
+  // UNIDAD
+  if (commandName === "unidad") {
+    const sub = options.getSubcommand();
+    const unidadNombre = options.getString("unidad");
+
+    if (!unidades[unidadNombre]) {
+      return interaction.reply("❌ Unidad no válida");
+    }
+
+    // ASIGNAR
+    if (sub === "asignar") {
+      const user = options.getUser("usuario");
+      unidades[unidadNombre].miembros.push(`<@${user.id}>`);
+      await actualizarPlantilla();
+      return interaction.reply(`✅ ${user} asignado a ${unidadNombre}`);
+    }
+
+    // QUITAR
+    if (sub === "quitar") {
+      const user = options.getUser("usuario");
+      unidades[unidadNombre].miembros =
+        unidades[unidadNombre].miembros.filter(m => m !== `<@${user.id}>`);
+      await actualizarPlantilla();
+      return interaction.reply(`❌ ${user} quitado de ${unidadNombre}`);
+    }
+
+    // VEHICULO
+    if (sub === "vehiculo") {
+      const vehiculo = options.getString("vehiculo");
+
+      if (!vehiculos[vehiculo]) {
+        return interaction.reply("❌ Vehículo no existe");
+      }
+
+      unidades[unidadNombre].vehiculo = vehiculo;
+      await actualizarPlantilla();
+      return interaction.reply(`🚗 Vehículo asignado a ${unidadNombre}`);
+    }
+
+    // VER
+    if (sub === "ver") {
+      const u = unidades[unidadNombre];
+      return interaction.reply(
+        `📋 ${unidadNombre}\n👥 ${u.miembros.join(", ") || "Nadie"}\n🚗 ${u.vehiculo || "Ninguno"}`
+      );
+    }
+  }
+
+  // VEHICULO
+  if (commandName === "vehiculo") {
+    const sub = options.getSubcommand();
+
+    if (sub === "crear") {
+      const nombre = options.getString("nombre");
+      const desc = options.getString("descripcion");
+
+      vehiculos[nombre] = desc;
+      return interaction.reply(`🚗 Vehículo ${nombre} creado`);
+    }
+
+    if (sub === "eliminar") {
+      const nombre = options.getString("vehiculo");
+      delete vehiculos[nombre];
+      return interaction.reply(`🗑️ Vehículo eliminado`);
+    }
+
+    if (sub === "ver") {
+      const nombre = options.getString("vehiculo");
+      return interaction.reply(`🚗 ${nombre}: ${vehiculos[nombre] || "No existe"}`);
+    }
+  }
+
+  // PLANTILLA
+  if (commandName === "plantilla") {
+    const sub = options.getSubcommand();
+
+    if (sub === "crear") {
+      plantillaMsg = await interaction.channel.send(generarPlantilla());
+      return interaction.reply("✅ Plantilla creada");
+    }
+
+    if (sub === "actualizar") {
+      await actualizarPlantilla();
+      return interaction.reply("🔄 Actualizada");
+    }
+
+    if (sub === "limpiar") {
+      for (const unidad of Object.values(unidades)) {
+        unidad.miembros = [];
+        unidad.vehiculo = null;
+      }
+
+      await actualizarPlantilla();
+      return interaction.reply("🧹 Plantilla limpiada");
+    }
+  }
+});
+
+client.login(process.env.TOKEN);
