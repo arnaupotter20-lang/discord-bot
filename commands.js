@@ -1,0 +1,116 @@
+require("dotenv").config();
+const { REST, Routes, SlashCommandBuilder } = require("discord.js");
+
+function unidadOption(option) {
+  return option
+    .setName("unidad")
+    .setDescription("Selecciona la unidad")
+    .setRequired(true)
+    .setAutocomplete(true);
+}
+
+function vehiculoOption(option) {
+  return option
+    .setName("vehiculo")
+    .setDescription("Selecciona el vehículo")
+    .setRequired(true)
+    .setAutocomplete(true);
+}
+
+const commands = [
+  new SlashCommandBuilder()
+    .setName("ping")
+    .setDescription("Comprueba si el bot responde"),
+
+  new SlashCommandBuilder()
+    .setName("unidad")
+    .setDescription("Gestionar unidades")
+    .addSubcommand(sub =>
+      sub
+        .setName("asignar")
+        .setDescription("Asignar persona a una unidad")
+        .addUserOption(option =>
+          option.setName("usuario").setDescription("Usuario").setRequired(true)
+        )
+        .addStringOption(unidadOption)
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName("quitar")
+        .setDescription("Quitar persona de una unidad")
+        .addUserOption(option =>
+          option.setName("usuario").setDescription("Usuario").setRequired(true)
+        )
+        .addStringOption(unidadOption)
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName("vehiculo")
+        .setDescription("Asignar vehículo a una unidad")
+        .addStringOption(unidadOption)
+        .addStringOption(vehiculoOption)
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName("ver")
+        .setDescription("Ver una unidad")
+        .addStringOption(unidadOption)
+    ),
+
+  new SlashCommandBuilder()
+    .setName("vehiculo")
+    .setDescription("Gestionar vehículos")
+    .addSubcommand(sub =>
+      sub
+        .setName("crear")
+        .setDescription("Crear vehículo")
+        .addStringOption(option =>
+          option.setName("nombre").setDescription("Nombre del vehículo").setRequired(true)
+        )
+        .addStringOption(option =>
+          option.setName("descripcion").setDescription("Descripción").setRequired(true)
+        )
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName("eliminar")
+        .setDescription("Eliminar vehículo")
+        .addStringOption(vehiculoOption)
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName("ver")
+        .setDescription("Ver vehículo")
+        .addStringOption(vehiculoOption)
+    ),
+
+  new SlashCommandBuilder()
+    .setName("plantilla")
+    .setDescription("Gestionar plantilla")
+    .addSubcommand(sub =>
+      sub.setName("crear").setDescription("Crear plantilla fija")
+    )
+    .addSubcommand(sub =>
+      sub.setName("actualizar").setDescription("Actualizar plantilla")
+    )
+    .addSubcommand(sub =>
+      sub.setName("limpiar").setDescription("Limpiar personas y vehículos de la plantilla")
+    )
+].map(command => command.toJSON());
+
+const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+
+(async () => {
+  try {
+    console.log("Registrando comandos...");
+
+    await rest.put(
+      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+      { body: commands }
+    );
+
+    console.log("Comandos registrados correctamente.");
+  } catch (error) {
+    console.error(error);
+  }
+})();
