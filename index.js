@@ -9,6 +9,7 @@ db.exec(`
 CREATE TABLE IF NOT EXISTS units (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT UNIQUE NOT NULL,
+  category TEXT NOT NULL DEFAULT 'GAC',
   vehicle_id INTEGER
 );
 
@@ -32,15 +33,39 @@ CREATE TABLE IF NOT EXISTS plantilla (
 );
 `);
 
+try {
+  db.prepare("ALTER TABLE units ADD COLUMN category TEXT NOT NULL DEFAULT 'GAC'").run();
+} catch (error) {}
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
 const UNIDADES_INICIALES = [
+  { name: "H-50", category: "H50" },
+  { name: "SUP-01", category: "SUPERVISORA" },
+  { name: "Z-01", category: "GAC" },
+  { name: "Z-02", category: "GAC" },
+  { name: "UPR-01", category: "UPR" },
+  { name: "GOES", category: "GOES" },
+  { name: "GEO", category: "GEO" },
+  { name: "UIP", category: "UIP" },
+  { name: "FDF", category: "FDF" },
+  { name: "CGPJ", category: "CGPJ" },
+  { name: "CGPC", category: "CGPC" },
+  { name: "CGI", category: "CGI" },
+  { name: "UAI", category: "UAI" },
+  { name: "UEGC", category: "UEGC" }
+];
+
+const ORDEN_CATEGORIAS = [
+  "H50",
+  "SUPERVISORA",
+  "GAC",
+  "UPR",
   "GOES",
   "GEO",
   "UIP",
-  "UPR",
   "FDF",
   "CGPJ",
   "CGPC",
@@ -53,11 +78,34 @@ function limpiarNombre(nombre) {
   return nombre.trim().toUpperCase();
 }
 
+function nombreCategoria(categoria) {
+  const nombres = {
+    H50: "H-50",
+    SUPERVISORA: "UNIDADES SUPERVISORAS",
+    GAC: "UNIDADES GAC",
+    UPR: "UPR",
+    GOES: "GOES",
+    GEO: "GEO",
+    UIP: "UIP",
+    FDF: "FDF",
+    CGPJ: "CGPJ",
+    CGPC: "CGPC",
+    CGI: "CGI",
+    UAI: "UAI",
+    UEGC: "UEGC"
+  };
+
+  return nombres[categoria] || categoria;
+}
+
 function crearUnidadesIniciales() {
-  const stmt = db.prepare("INSERT OR IGNORE INTO units (name) VALUES (?)");
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO units (name, category)
+    VALUES (?, ?)
+  `);
 
   for (const unidad of UNIDADES_INICIALES) {
-    stmt.run(unidad);
+    stmt.run(unidad.name, unidad.category);
   }
 }
 
@@ -69,32 +117,50 @@ function getVehiculo(nombre) {
   return db.prepare("SELECT * FROM vehicles WHERE name = ?").get(limpiarNombre(nombre));
 }
 
+function horaActual() {
+  const now = new Date();
+  return now.toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
 function generarPlantilla() {
   const unidades = db.prepare(`
     SELECT units.*, vehicles.name AS vehicle_name
     FROM units
     LEFT JOIN vehicles ON units.vehicle_id = vehicles.id
-    ORDER BY units.name
   `).all();
 
-  let texto = "🚔 **PLANTILLA DE SERVICIO**\n\n";
+  let texto = "🚔 **PLANTILLA DE SERVICIO**\n";
+  texto += `🕒 **Última actualización:** ${horaActual()}\n\n`;
 
-  for (const unidad of unidades) {
-    const miembros = db.prepare(`
-      SELECT discord_id FROM unit_members WHERE unit_id = ?
-    `).all(unidad.id);
+  for (const categoria of ORDEN_CATEGORIAS) {
+    const unidadesCategoria = unidades
+      .filter(u => u.category === categoria)
+      .sort((a, b) => a.name.localeCompare(b.name));
 
-    texto += `**${unidad.name}**\n`;
+    if (!unidadesCategoria.length) continue;
 
-    if (miembros.length) {
-      for (const miembro of miembros) {
-        texto += `• <@${miembro.discord_id}>\n`;
+    texto += `__**${nombreCategoria(categoria)}**__\n\n`;
+
+    for (const unidad of unidadesCategoria) {
+      const miembros = db.prepare(`
+        SELECT discord_id FROM unit_members WHERE unit_id = ?
+      `).all(unidad.id);
+
+      texto += `**${unidad.name}**\n`;
+
+      if (miembros.length) {
+        for (const miembro of miembros) {
+          texto += `• <@${miembro.discord_id}>\n`;
+        }
+      } else {
+        texto += "• Sin miembros\n";
       }
-    } else {
-      texto += "• Sin miembros\n";
-    }
 
-    texto += `🚗 Vehículo: ${unidad.vehicle_name || "Sin vehículo"}\n\n`;
+      texto += `🚗 Vehículo: ${unidad.vehicle_name || "Sin vehículo"}\n\n`;
+    }
   }
 
   return texto;
@@ -107,7 +173,6 @@ async function actualizarPlantilla() {
   try {
     const canal = await client.channels.fetch(data.channel_id);
     const mensaje = await canal.messages.fetch(data.message_id);
-
     await mensaje.edit(generarPlantilla());
   } catch (error) {
     console.error("Error actualizando plantilla:", error);
@@ -161,15 +226,20 @@ client.on("interactionCreate", async interaction => {
 
       if (sub === "crear") {
         const nombre = limpiarNombre(interaction.options.getString("nombre"));
+        const categoria = interaction.options.getString("categoria");
 
         if (getUnidad(nombre)) {
           return interaction.editReply(`❌ La unidad **${nombre}** ya existe.`);
         }
 
-        db.prepare("INSERT INTO units (name) VALUES (?)").run(nombre);
+        db.prepare(`
+          INSERT INTO units (name, category)
+          VALUES (?, ?)
+        `).run(nombre, categoria);
+
         await actualizarPlantilla();
 
-        return interaction.editReply(`✅ Unidad **${nombre}** creada.`);
+        return interaction.editReply(`✅ Unidad **${nombre}** creada en **${nombreCategoria(categoria)}**.`);
       }
 
       if (sub === "eliminar") {
@@ -212,6 +282,7 @@ client.on("interactionCreate", async interaction => {
 
         return interaction.editReply(
           `📋 **${unidad.name}**\n\n` +
+          `📂 **Categoría:** ${nombreCategoria(unidad.category)}\n\n` +
           `👥 **Miembros:**\n${textoMiembros}\n\n` +
           `🚗 **Vehículo:** ${unidad.vehicle_name || "Sin vehículo"}`
         );
