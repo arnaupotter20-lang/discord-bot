@@ -357,4 +357,11 @@ client.on("interactionCreate", async interaction => {
   }
 });
 
-client.login(process.env.Discord_Token);
+const token = process.env.Discord_Token || process.env.DISCORD_TOKEN;
+
+if (!token) {
+  console.error("NO HAY TOKEN. Revisa las variables de Railway.");
+  process.exit(1);
+}
+
+client.login(token);
