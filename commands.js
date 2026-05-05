@@ -34,13 +34,16 @@ const categorias = [
 ];
 
 const commands = [
+  // 🔹 PING
   new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Comprueba si el bot responde"),
 
+  // 🔹 UNIDAD
   new SlashCommandBuilder()
     .setName("unidad")
     .setDescription("Gestionar unidades")
+
     .addSubcommand(sub =>
       sub
         .setName("crear")
@@ -51,99 +54,145 @@ const commands = [
         .addStringOption(option =>
           option
             .setName("categoria")
-            .setDescription("Categoría de la unidad")
+            .setDescription("Categoría")
             .setRequired(true)
             .addChoices(...categorias)
         )
     )
-    .addSubcommand(sub =>
-      sub.setName("eliminar").setDescription("Eliminar una unidad").addStringOption(unidadOption)
-    )
-    .addSubcommand(sub =>
-      sub.setName("ver").setDescription("Ver una unidad").addStringOption(unidadOption)
-    )
+
     .addSubcommand(sub =>
       sub
         .setName("asignar")
-        .setDescription("Asignar persona a una unidad")
+        .setDescription("Asignar usuario")
         .addUserOption(option =>
           option.setName("usuario").setDescription("Usuario").setRequired(true)
         )
         .addStringOption(unidadOption)
     )
+
     .addSubcommand(sub =>
       sub
         .setName("quitar")
-        .setDescription("Quitar persona de una unidad")
+        .setDescription("Quitar usuario")
         .addUserOption(option =>
           option.setName("usuario").setDescription("Usuario").setRequired(true)
         )
         .addStringOption(unidadOption)
     )
+
     .addSubcommand(sub =>
       sub
         .setName("vehiculo")
-        .setDescription("Asignar vehículo a una unidad")
+        .setDescription("Asignar vehículo")
         .addStringOption(unidadOption)
         .addStringOption(vehiculoOption)
     )
+
     .addSubcommand(sub =>
       sub
         .setName("vehiculo-quitar")
-        .setDescription("Quitar vehículo de una unidad")
+        .setDescription("Quitar vehículo")
         .addStringOption(unidadOption)
     )
+
     .addSubcommand(sub =>
       sub
         .setName("zona-añadir")
-        .setDescription("Añadir zona a una unidad")
+        .setDescription("Añadir zona")
         .addStringOption(unidadOption)
         .addStringOption(option =>
           option.setName("zona").setDescription("Zona").setRequired(true)
         )
     )
+
     .addSubcommand(sub =>
       sub
         .setName("zona-quitar")
-        .setDescription("Quitar zona de una unidad")
+        .setDescription("Quitar zona")
         .addStringOption(unidadOption)
         .addStringOption(option =>
           option.setName("zona").setDescription("Zona").setRequired(true)
         )
     ),
 
+  // 🔹 VEHICULO
   new SlashCommandBuilder()
     .setName("vehiculo")
     .setDescription("Gestionar vehículos")
+
     .addSubcommand(sub =>
       sub
         .setName("crear")
         .setDescription("Crear vehículo")
         .addStringOption(option =>
-          option.setName("nombre").setDescription("Nombre del vehículo").setRequired(true)
+          option.setName("nombre").setDescription("Nombre").setRequired(true)
         )
         .addStringOption(option =>
           option.setName("descripcion").setDescription("Descripción").setRequired(true)
         )
     )
+
     .addSubcommand(sub =>
-      sub.setName("eliminar").setDescription("Eliminar vehículo").addStringOption(vehiculoOption)
+      sub
+        .setName("eliminar")
+        .setDescription("Eliminar vehículo")
+        .addStringOption(vehiculoOption)
     )
+
     .addSubcommand(sub =>
-      sub.setName("ver").setDescription("Ver vehículo").addStringOption(vehiculoOption)
+      sub
+        .setName("ver")
+        .setDescription("Ver vehículo")
+        .addStringOption(vehiculoOption)
     ),
 
+  // 🔹 ZONA
+  new SlashCommandBuilder()
+    .setName("zona")
+    .setDescription("Gestionar zonas")
+
+    .addSubcommand(sub =>
+      sub
+        .setName("crear")
+        .setDescription("Crear zona")
+        .addStringOption(option =>
+          option.setName("nombre").setDescription("Nombre").setRequired(true)
+        )
+    )
+
+    .addSubcommand(sub =>
+      sub
+        .setName("eliminar")
+        .setDescription("Eliminar zona")
+        .addStringOption(option =>
+          option.setName("nombre").setDescription("Zona").setRequired(true)
+        )
+    )
+
+    .addSubcommand(sub =>
+      sub
+        .setName("ver")
+        .setDescription("Ver zona")
+        .addStringOption(option =>
+          option.setName("nombre").setDescription("Zona").setRequired(true)
+        )
+    ),
+
+  // 🔹 PLANTILLA
   new SlashCommandBuilder()
     .setName("plantilla")
     .setDescription("Gestionar plantilla")
+
     .addSubcommand(sub =>
-      sub.setName("crear").setDescription("Crear plantilla fija")
+      sub.setName("crear").setDescription("Crear plantilla")
     )
+
     .addSubcommand(sub =>
       sub.setName("actualizar").setDescription("Actualizar plantilla")
     )
+
     .addSubcommand(sub =>
-      sub.setName("limpiar").setDescription("Limpiar personas, vehículos y zonas")
+      sub.setName("limpiar").setDescription("Limpiar plantilla")
     )
 ].map(command => command.toJSON());
 
@@ -154,7 +203,10 @@ const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
     console.log("Registrando comandos...");
 
     await rest.put(
-      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+      Routes.applicationGuildCommands(
+        process.env.CLIENT_ID,
+        process.env.GUILD_ID
+      ),
       { body: commands }
     );
 
