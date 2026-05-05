@@ -18,7 +18,7 @@ function vehiculoOption(option) {
 }
 
 const categorias = [
-  { name: "H-50", value: "H-50" },
+  { name: "H-50", value: "H50" },
   { name: "Supervisora", value: "SUPERVISORA" },
   { name: "GAC", value: "GAC" },
   { name: "UPR", value: "UPR" },
@@ -89,18 +89,27 @@ const commands = [
     )
     .addSubcommand(sub =>
       sub
-        .setName("quitarvehiculo")
+        .setName("vehiculo-quitar")
         .setDescription("Quitar vehículo de una unidad")
         .addStringOption(unidadOption)
     )
     .addSubcommand(sub =>
       sub
-        .setName("zona")
-        .setDescription("Asignar zona a unidad")
+        .setName("zona-añadir")
+        .setDescription("Añadir zona a una unidad")
         .addStringOption(unidadOption)
         .addStringOption(option =>
-          option.setName("zona").setRequired(true).setAutocomplete(true)
+          option.setName("zona").setDescription("Zona").setRequired(true)
+        )
     )
+    .addSubcommand(sub =>
+      sub
+        .setName("zona-quitar")
+        .setDescription("Quitar zona de una unidad")
+        .addStringOption(unidadOption)
+        .addStringOption(option =>
+          option.setName("zona").setDescription("Zona").setRequired(true)
+        )
     ),
 
   new SlashCommandBuilder()
@@ -123,36 +132,6 @@ const commands = [
     .addSubcommand(sub =>
       sub.setName("ver").setDescription("Ver vehículo").addStringOption(vehiculoOption)
     ),
-  new SlashCommandBuilder()
-  .setName("zona")
-  .setDescription("Gestionar zonas")
-  .addSubcommand(sub =>
-    sub
-      .setName("crear")
-      .setDescription("Crear zona")
-      .addStringOption(option =>
-        option.setName("nombre").setRequired(true)
-      )
-      .addStringOption(option =>
-        option.setName("descripcion").setRequired(true)
-      )
-  )
-  .addSubcommand(sub =>
-    sub
-      .setName("eliminar")
-      .setDescription("Eliminar zona")
-      .addStringOption(option =>
-        option.setName("zona").setRequired(true).setAutocomplete(true)
-      )
-  )
-  .addSubcommand(sub =>
-    sub
-      .setName("ver")
-      .setDescription("Ver zona")
-      .addStringOption(option =>
-        option.setName("zona").setRequired(true).setAutocomplete(true)
-      )
-  ),
 
   new SlashCommandBuilder()
     .setName("plantilla")
@@ -164,7 +143,7 @@ const commands = [
       sub.setName("actualizar").setDescription("Actualizar plantilla")
     )
     .addSubcommand(sub =>
-      sub.setName("limpiar").setDescription("Limpiar personas y vehículos")
+      sub.setName("limpiar").setDescription("Limpiar personas, vehículos y zonas")
     )
 ].map(command => command.toJSON());
 
