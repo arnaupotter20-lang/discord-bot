@@ -82,6 +82,22 @@ const commands = [
     )
     .addSubcommand(sub =>
       sub
+        .setName("quitar vehiculo")
+        .setDescription("Quitar vehículo de una unidad")
+        .addStringOption(unidadOption)
+        )
+    .addSubcommand(sub =>
+      sub
+        .setName("zona")
+        .setDescription("Asignar zona a unidad")
+        .addStringOption(unidadOption)
+        .addStringOption(option =>
+          option.setName("zona").setRequired(true).setAutocomplete(true)
+        )
+    )
+  
+    .addSubcommand(sub =>
+      sub
         .setName("vehiculo")
         .setDescription("Asignar vehículo a una unidad")
         .addStringOption(unidadOption)
