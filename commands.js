@@ -86,8 +86,26 @@ const commands = [
         .setDescription("Asignar vehículo a una unidad")
         .addStringOption(unidadOption)
         .addStringOption(vehiculoOption)
-    ),
-
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName("asignar zona")
+        .setDescription("Asignar zona a una unidad")
+        .addUserOption(option =>
+          option.setName("zona").setDescription("zona").setRequired(true)
+        )
+        .addStringOption(unidadOption)
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName("quitar zona")
+        .setDescription("Quitar zona de una unidad")
+        .addUserOption(option =>
+          option.setName("zona").setDescription("zona").setRequired(true)
+        )
+        .addStringOption(unidadOption)
+    )
+  
   new SlashCommandBuilder()
     .setName("vehiculo")
     .setDescription("Gestionar vehículos")
@@ -107,6 +125,27 @@ const commands = [
     )
     .addSubcommand(sub =>
       sub.setName("ver").setDescription("Ver vehículo").addStringOption(vehiculoOption)
+    ),
+
+  new SlashCommandBuilder()
+    .setName("ZONA PATRULLAJE")
+    .setDescription("Gestionar vehículos")
+    .addSubcommand(sub =>
+      sub
+        .setName("crear")
+        .setDescription("Crear nueva zona")
+        .addStringOption(option =>
+          option.setName("nombre").setDescription("Nombre de la zona").setRequired(true)
+        )
+        .addStringOption(option =>
+          option.setName("descripcion").setDescription("Descripción de la zona").setRequired(true)
+        )
+    )
+    .addSubcommand(sub =>
+      sub.setName("eliminar").setDescription("Eliminar zona").addStringOption(vehiculoOption)
+    )
+    .addSubcommand(sub =>
+      sub.setName("ver").setDescription("Ver zona").addStringOption(vehiculoOption)
     ),
 
   new SlashCommandBuilder()
