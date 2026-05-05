@@ -18,7 +18,7 @@ function vehiculoOption(option) {
 }
 
 const categorias = [
-  { name: "H-50", value: "H50" },
+  { name: "H-50", value: "H-50" },
   { name: "Supervisora", value: "SUPERVISORA" },
   { name: "GAC", value: "GAC" },
   { name: "UPR", value: "UPR" },
