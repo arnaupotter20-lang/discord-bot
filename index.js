@@ -43,19 +43,8 @@ const client = new Client({
 
 const UNIDADES_INICIALES = [
   { name: "H-50", category: "H50" },
-  { name: "SUP-01", category: "SUPERVISORA" },
-  { name: "Z-01", category: "GAC" },
-  { name: "Z-02", category: "GAC" },
-  { name: "UPR-01", category: "UPR" },
-  { name: "GOES", category: "GOES" },
-  { name: "GEO", category: "GEO" },
-  { name: "UIP", category: "UIP" },
-  { name: "FDF", category: "FDF" },
-  { name: "CGPJ", category: "CGPJ" },
-  { name: "CGPC", category: "CGPC" },
-  { name: "CGI", category: "CGI" },
-  { name: "UAI", category: "UAI" },
-  { name: "UEGC", category: "UEGC" }
+  { name: "Z-01", category: "SUPERVISORA" },
+  { name: "Z-10", category: "GAC" },
 ];
 
 const ORDEN_CATEGORIAS = [
