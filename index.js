@@ -48,6 +48,8 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
+// ---------------- FUNCIONES GENERALES ----------------
+
 function limpiarNombre(nombre) {
   return nombre.trim().toUpperCase();
 }
@@ -70,6 +72,8 @@ function hora() {
     minute: "2-digit"
   });
 }
+
+// ---------------- PLANTILLA ----------------
 
 function generarPlantilla() {
   const unidades = db.prepare(`
@@ -131,12 +135,18 @@ async function actualizarPlantilla() {
   }
 }
 
+// ---------------- READY ----------------
+
 client.once("ready", () => {
   console.log(`Bot listo como ${client.user.tag}`);
 });
 
+// ---------------- INTERACCIONES ----------------
+
 client.on("interactionCreate", async interaction => {
   try {
+    // ---------------- AUTOCOMPLETE ----------------
+
     if (interaction.isAutocomplete()) {
       const focused = interaction.options.getFocused().toUpperCase();
       const focusedName = interaction.options.getFocused(true).name;
@@ -177,9 +187,13 @@ client.on("interactionCreate", async interaction => {
 
     const { commandName, options } = interaction;
 
+    // ---------------- PING ----------------
+
     if (commandName === "ping") {
       return interaction.reply("Pong 🟢");
     }
+
+    // ---------------- UNIDAD ----------------
 
     if (commandName === "unidad") {
       await interaction.deferReply();
@@ -202,6 +216,23 @@ client.on("interactionCreate", async interaction => {
         await actualizarPlantilla();
 
         return interaction.editReply(`✅ Unidad **${nombre}** creada.`);
+      }
+
+      if (sub === "eliminar") {
+        const unidadNombre = limpiarNombre(options.getString("unidad"));
+        const unidad = getUnidad(unidadNombre);
+
+        if (!unidad) {
+          return interaction.editReply("❌ Unidad no existe.");
+        }
+
+        db.prepare(`DELETE FROM unit_members WHERE unit_id = ?`).run(unidad.id);
+        db.prepare(`DELETE FROM unit_zones WHERE unit_id = ?`).run(unidad.id);
+        db.prepare(`DELETE FROM units WHERE id = ?`).run(unidad.id);
+
+        await actualizarPlantilla();
+
+        return interaction.editReply(`🗑️ Unidad **${unidadNombre}** eliminada.`);
       }
 
       if (sub === "asignar") {
@@ -334,6 +365,8 @@ client.on("interactionCreate", async interaction => {
       }
     }
 
+    // ---------------- VEHICULO ----------------
+
     if (commandName === "vehiculo") {
       await interaction.deferReply();
 
@@ -383,11 +416,16 @@ client.on("interactionCreate", async interaction => {
       }
     }
 
+    // ---------------- ZONA ----------------
+
     if (commandName === "zona") {
       await interaction.deferReply();
 
       const sub = options.getSubcommand();
-      const nombre = limpiarNombre(options.getString("nombre"));
+
+      const nombre = limpiarNombre(
+        options.getString("nombre") || options.getString("zona")
+      );
 
       if (sub === "crear") {
         const descripcion = options.getString("descripcion");
@@ -429,6 +467,8 @@ client.on("interactionCreate", async interaction => {
         return interaction.editReply(`🗑️ Zona **${nombre}** eliminada.`);
       }
     }
+
+    // ---------------- PLANTILLA ----------------
 
     if (commandName === "plantilla") {
       await interaction.deferReply();
