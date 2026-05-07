@@ -44,6 +44,13 @@ CREATE TABLE IF NOT EXISTS plantilla (
 );
 `);
 
+try {
+  db.prepare(`
+    ALTER TABLE vehicles
+    ADD COLUMN image_url TEXT
+  `).run();
+} catch (error) {}
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
@@ -365,56 +372,129 @@ client.on("interactionCreate", async interaction => {
       }
     }
 
-    // ---------------- VEHICULO ----------------
+// ---------------- VEHICULO ----------------
 
-    if (commandName === "vehiculo") {
-      await interaction.deferReply();
+if (commandName === "vehiculo") {
+  await interaction.deferReply();
 
-      const sub = options.getSubcommand();
+  const sub = options.getSubcommand();
 
-      if (sub === "crear") {
-        const nombre = limpiarNombre(options.getString("nombre"));
-        const descripcion = options.getString("descripcion");
+  // ---------------- IMAGEN ----------------
 
-        if (getVehiculo(nombre)) {
-          return interaction.editReply(`❌ El vehículo **${nombre}** ya existe.`);
-        }
+  if (sub === "imagen") {
+    const vehiculoNombre = limpiarNombre(
+      options.getString("vehiculo")
+    );
 
-        db.prepare(`
-          INSERT INTO vehicles (name, description)
-          VALUES (?, ?)
-        `).run(nombre, descripcion);
+    const imagen = options.getAttachment("imagen");
 
-        return interaction.editReply(`🚗 Vehículo **${nombre}** creado.`);
-      }
+    const vehiculo = getVehiculo(vehiculoNombre);
 
-      if (sub === "ver") {
-        const nombre = limpiarNombre(options.getString("vehiculo"));
-        const vehiculo = getVehiculo(nombre);
-
-        if (!vehiculo) {
-          return interaction.editReply("❌ Vehículo no existe.");
-        }
-
-        return interaction.editReply(`🚗 **${vehiculo.name}**\n\n${vehiculo.description}`);
-      }
-
-      if (sub === "eliminar") {
-        const nombre = limpiarNombre(options.getString("vehiculo"));
-        const vehiculo = getVehiculo(nombre);
-
-        if (!vehiculo) {
-          return interaction.editReply("❌ Vehículo no existe.");
-        }
-
-        db.prepare(`UPDATE units SET vehicle_id = NULL WHERE vehicle_id = ?`).run(vehiculo.id);
-        db.prepare(`DELETE FROM vehicles WHERE id = ?`).run(vehiculo.id);
-
-        await actualizarPlantilla();
-
-        return interaction.editReply(`🗑️ Vehículo **${nombre}** eliminado.`);
-      }
+    if (!vehiculo) {
+      return interaction.editReply(
+        "❌ Vehículo no existe."
+      );
     }
+
+    db.prepare(`
+      UPDATE vehicles
+      SET image_url = ?
+      WHERE id = ?
+    `).run(imagen.url, vehiculo.id);
+
+    await actualizarPlantilla();
+
+    return interaction.editReply(
+      `🖼️ Imagen añadida a **${vehiculoNombre}**.`
+    );
+  }
+
+  // ---------------- CREAR ----------------
+
+  if (sub === "crear") {
+    const nombre = limpiarNombre(
+      options.getString("nombre")
+    );
+
+    const descripcion = options.getString(
+      "descripcion"
+    );
+
+    if (getVehiculo(nombre)) {
+      return interaction.editReply(
+        `❌ El vehículo **${nombre}** ya existe.`
+      );
+    }
+
+    db.prepare(`
+      INSERT INTO vehicles (name, description)
+      VALUES (?, ?)
+    `).run(nombre, descripcion);
+
+    return interaction.editReply(
+      `🚗 Vehículo **${nombre}** creado.`
+    );
+  }
+
+  // ---------------- VER ----------------
+
+  if (sub === "ver") {
+    const nombre = limpiarNombre(
+      options.getString("vehiculo")
+    );
+
+    const vehiculo = getVehiculo(nombre);
+
+    if (!vehiculo) {
+      return interaction.editReply(
+        "❌ Vehículo no existe."
+      );
+    }
+
+    let texto =
+      `🚗 **${vehiculo.name}**\n\n` +
+      `${vehiculo.description}`;
+
+    if (vehiculo.image_url) {
+      texto += `\n\n🖼️ ${vehiculo.image_url}`;
+    }
+
+    return interaction.editReply(texto);
+  }
+
+  // ---------------- ELIMINAR ----------------
+
+  if (sub === "eliminar") {
+    const nombre = limpiarNombre(
+      options.getString("vehiculo")
+    );
+
+    const vehiculo = getVehiculo(nombre);
+
+    if (!vehiculo) {
+      return interaction.editReply(
+        "❌ Vehículo no existe."
+      );
+    }
+
+    db.prepare(`
+      UPDATE units
+      SET vehicle_id = NULL
+      WHERE vehicle_id = ?
+    `).run(vehiculo.id);
+
+    db.prepare(`
+      DELETE FROM vehicles
+      WHERE id = ?
+    `).run(vehiculo.id);
+
+    await actualizarPlantilla();
+
+    return interaction.editReply(
+      `🗑️ Vehículo **${nombre}** eliminado.`
+    );
+  }
+}
 
     // ---------------- ZONA ----------------
 
