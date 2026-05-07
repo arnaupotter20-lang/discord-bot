@@ -183,7 +183,7 @@ const commands = [
       .setName("ver")
       .setDescription("Ver vehículo")
       .addStringOption(vehiculoOption)
-  )
+  ),
 
   // ---------------- ZONA ----------------
 
