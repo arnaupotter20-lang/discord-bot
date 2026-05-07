@@ -2,7 +2,7 @@ require("dotenv").config();
 const { Client, GatewayIntentBits } = require("discord.js");
 const Database = require("better-sqlite3");
 
-const db = new Database("database.sqlite");
+const db = new Database("/data/database.sqlite");
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS units (
