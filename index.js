@@ -76,9 +76,10 @@ function generarPlantilla() {
     SELECT units.*, vehicles.name AS vehiculo
     FROM units
     LEFT JOIN vehicles ON units.vehicle_id = vehicles.id
+    ORDER BY units.category, units.name
   `).all();
 
-  let texto = `🚔 PLANTILLA\n🕒 ${hora()}\n\n`;
+  let texto = `🚔 **PLANTILLA**\n🕒 Última actualización: ${hora()}\n\n`;
 
   for (const u of unidades) {
     const miembros = db.prepare(`
@@ -86,9 +87,11 @@ function generarPlantilla() {
     `).all(u.id);
 
     const zonas = db.prepare(`
-      SELECT zones.name FROM unit_zones
+      SELECT zones.name, zones.description
+      FROM unit_zones
       JOIN zones ON zones.id = unit_zones.zone_id
       WHERE unit_zones.unit_id = ?
+      ORDER BY zones.name
     `).all(u.id);
 
     texto += `**${u.name}**\n`;
@@ -104,7 +107,9 @@ function generarPlantilla() {
     texto += `🚗 ${u.vehiculo || "Sin vehículo"}\n`;
 
     if (zonas.length) {
-      texto += `📍 ${zonas.map(z => z.name).join(", ")}\n`;
+      texto += `📍 Zonas: ${zonas.map(z => z.name).join(", ")}\n`;
+    } else {
+      texto += `📍 Zonas: Sin zonas\n`;
     }
 
     texto += `\n`;
@@ -117,248 +122,362 @@ async function actualizarPlantilla() {
   const data = db.prepare("SELECT * FROM plantilla LIMIT 1").get();
   if (!data) return;
 
-  const canal = await client.channels.fetch(data.channel_id);
-  const mensaje = await canal.messages.fetch(data.message_id);
-
-  await mensaje.edit(generarPlantilla());
+  try {
+    const canal = await client.channels.fetch(data.channel_id);
+    const mensaje = await canal.messages.fetch(data.message_id);
+    await mensaje.edit(generarPlantilla());
+  } catch (error) {
+    console.error("Error actualizando plantilla:", error);
+  }
 }
 
 client.once("ready", () => {
-  console.log("Bot listo");
+  console.log(`Bot listo como ${client.user.tag}`);
 });
 
 client.on("interactionCreate", async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+  try {
+    if (interaction.isAutocomplete()) {
+      const focused = interaction.options.getFocused().toUpperCase();
+      const focusedName = interaction.options.getFocused(true).name;
 
-  const { commandName, options } = interaction;
+      let opciones = [];
 
-  // ---------------- UNIDAD ----------------
-  if (commandName === "unidad") {
-    await interaction.deferReply();
-    const sub = options.getSubcommand();
+      if (focusedName === "unidad") {
+        opciones = db.prepare(`
+          SELECT name FROM units WHERE name LIKE ? ORDER BY name LIMIT 25
+        `).all(`%${focused}%`).map(row => ({
+          name: row.name,
+          value: row.name
+        }));
+      }
 
-    const nombre = limpiarNombre(options.getString("unidad") || options.getString("nombre"));
+      if (focusedName === "vehiculo") {
+        opciones = db.prepare(`
+          SELECT name FROM vehicles WHERE name LIKE ? ORDER BY name LIMIT 25
+        `).all(`%${focused}%`).map(row => ({
+          name: row.name,
+          value: row.name
+        }));
+      }
 
-    if (sub === "crear") {
-      const categoria = options.getString("categoria");
+      if (focusedName === "zona") {
+        opciones = db.prepare(`
+          SELECT name FROM zones WHERE name LIKE ? ORDER BY name LIMIT 25
+        `).all(`%${focused}%`).map(row => ({
+          name: row.name,
+          value: row.name
+        }));
+      }
 
-      db.prepare(`
-        INSERT INTO units (name, category)
-        VALUES (?, ?)
-      `).run(nombre, categoria);
-
-      return interaction.editReply("Unidad creada");
+      return interaction.respond(opciones);
     }
 
-    if (sub === "asignar") {
-      const user = options.getUser("usuario");
-      const unidad = getUnidad(nombre);
+    if (!interaction.isChatInputCommand()) return;
 
-      // SOLO 1 UNIDAD
-      db.prepare(`DELETE FROM unit_members WHERE discord_id = ?`).run(user.id);
+    const { commandName, options } = interaction;
 
-      db.prepare(`
-        INSERT INTO unit_members (unit_id, discord_id)
-        VALUES (?, ?)
-      `).run(unidad.id, user.id);
-
-      await actualizarPlantilla();
-
-      return interaction.editReply("Asignado");
+    if (commandName === "ping") {
+      return interaction.reply("Pong 🟢");
     }
 
-    if (sub === "vehiculo") {
-      const vehiculo = getVehiculo(options.getString("vehiculo"));
-      const unidad = getUnidad(nombre);
+    if (commandName === "unidad") {
+      await interaction.deferReply();
 
-      db.prepare(`
-        UPDATE units SET vehicle_id = ?
-        WHERE id = ?
-      `).run(vehiculo.id, unidad.id);
+      const sub = options.getSubcommand();
 
-      await actualizarPlantilla();
+      if (sub === "crear") {
+        const nombre = limpiarNombre(options.getString("nombre"));
+        const categoria = options.getString("categoria");
 
-      return interaction.editReply("Vehículo asignado");
+        if (getUnidad(nombre)) {
+          return interaction.editReply(`❌ La unidad **${nombre}** ya existe.`);
+        }
+
+        db.prepare(`
+          INSERT INTO units (name, category)
+          VALUES (?, ?)
+        `).run(nombre, categoria);
+
+        await actualizarPlantilla();
+
+        return interaction.editReply(`✅ Unidad **${nombre}** creada.`);
+      }
+
+      if (sub === "asignar") {
+        const unidadNombre = limpiarNombre(options.getString("unidad"));
+        const user = options.getUser("usuario");
+        const unidad = getUnidad(unidadNombre);
+
+        if (!unidad) {
+          return interaction.editReply("❌ Unidad no existe.");
+        }
+
+        db.prepare(`DELETE FROM unit_members WHERE discord_id = ?`).run(user.id);
+
+        db.prepare(`
+          INSERT INTO unit_members (unit_id, discord_id)
+          VALUES (?, ?)
+        `).run(unidad.id, user.id);
+
+        await actualizarPlantilla();
+
+        return interaction.editReply(`✅ ${user} asignado a **${unidadNombre}**.`);
+      }
+
+      if (sub === "quitar") {
+        const unidadNombre = limpiarNombre(options.getString("unidad"));
+        const user = options.getUser("usuario");
+        const unidad = getUnidad(unidadNombre);
+
+        if (!unidad) {
+          return interaction.editReply("❌ Unidad no existe.");
+        }
+
+        db.prepare(`
+          DELETE FROM unit_members
+          WHERE unit_id = ? AND discord_id = ?
+        `).run(unidad.id, user.id);
+
+        await actualizarPlantilla();
+
+        return interaction.editReply(`❌ ${user} quitado de **${unidadNombre}**.`);
+      }
+
+      if (sub === "vehiculo") {
+        const unidadNombre = limpiarNombre(options.getString("unidad"));
+        const vehiculoNombre = limpiarNombre(options.getString("vehiculo"));
+
+        const unidad = getUnidad(unidadNombre);
+        const vehiculo = getVehiculo(vehiculoNombre);
+
+        if (!unidad) {
+          return interaction.editReply("❌ Unidad no existe.");
+        }
+
+        if (!vehiculo) {
+          return interaction.editReply("❌ Vehículo no existe.");
+        }
+
+        db.prepare(`
+          UPDATE units SET vehicle_id = ?
+          WHERE id = ?
+        `).run(vehiculo.id, unidad.id);
+
+        await actualizarPlantilla();
+
+        return interaction.editReply(`🚗 Vehículo **${vehiculoNombre}** asignado a **${unidadNombre}**.`);
+      }
+
+      if (sub === "vehiculo-quitar") {
+        const unidadNombre = limpiarNombre(options.getString("unidad"));
+        const unidad = getUnidad(unidadNombre);
+
+        if (!unidad) {
+          return interaction.editReply("❌ Unidad no existe.");
+        }
+
+        db.prepare(`
+          UPDATE units SET vehicle_id = NULL
+          WHERE id = ?
+        `).run(unidad.id);
+
+        await actualizarPlantilla();
+
+        return interaction.editReply(`🚗 Vehículo quitado de **${unidadNombre}**.`);
+      }
+
+      if (sub === "zona-añadir") {
+        const unidadNombre = limpiarNombre(options.getString("unidad"));
+        const zonaNombre = limpiarNombre(options.getString("zona"));
+
+        const unidad = getUnidad(unidadNombre);
+        const zona = getZona(zonaNombre);
+
+        if (!unidad) {
+          return interaction.editReply("❌ Unidad no existe.");
+        }
+
+        if (!zona) {
+          return interaction.editReply("❌ Zona no existe.");
+        }
+
+        db.prepare(`
+          INSERT OR IGNORE INTO unit_zones (unit_id, zone_id)
+          VALUES (?, ?)
+        `).run(unidad.id, zona.id);
+
+        await actualizarPlantilla();
+
+        return interaction.editReply(`📍 Zona **${zonaNombre}** añadida a **${unidadNombre}**.`);
+      }
+
+      if (sub === "zona-quitar") {
+        const unidadNombre = limpiarNombre(options.getString("unidad"));
+        const zonaNombre = limpiarNombre(options.getString("zona"));
+
+        const unidad = getUnidad(unidadNombre);
+        const zona = getZona(zonaNombre);
+
+        if (!unidad || !zona) {
+          return interaction.editReply("❌ Datos incorrectos.");
+        }
+
+        db.prepare(`
+          DELETE FROM unit_zones
+          WHERE unit_id = ? AND zone_id = ?
+        `).run(unidad.id, zona.id);
+
+        await actualizarPlantilla();
+
+        return interaction.editReply(`📍 Zona **${zonaNombre}** quitada de **${unidadNombre}**.`);
+      }
     }
 
-    if (sub === "vehiculo-quitar") {
-      const unidad = getUnidad(nombre);
+    if (commandName === "vehiculo") {
+      await interaction.deferReply();
 
-      db.prepare(`
-        UPDATE units SET vehicle_id = NULL
-        WHERE id = ?
-      `).run(unidad.id);
+      const sub = options.getSubcommand();
 
-      await actualizarPlantilla();
+      if (sub === "crear") {
+        const nombre = limpiarNombre(options.getString("nombre"));
+        const descripcion = options.getString("descripcion");
 
-      return interaction.editReply("Vehículo quitado");
+        if (getVehiculo(nombre)) {
+          return interaction.editReply(`❌ El vehículo **${nombre}** ya existe.`);
+        }
+
+        db.prepare(`
+          INSERT INTO vehicles (name, description)
+          VALUES (?, ?)
+        `).run(nombre, descripcion);
+
+        return interaction.editReply(`🚗 Vehículo **${nombre}** creado.`);
+      }
+
+      if (sub === "ver") {
+        const nombre = limpiarNombre(options.getString("vehiculo"));
+        const vehiculo = getVehiculo(nombre);
+
+        if (!vehiculo) {
+          return interaction.editReply("❌ Vehículo no existe.");
+        }
+
+        return interaction.editReply(`🚗 **${vehiculo.name}**\n\n${vehiculo.description}`);
+      }
+
+      if (sub === "eliminar") {
+        const nombre = limpiarNombre(options.getString("vehiculo"));
+        const vehiculo = getVehiculo(nombre);
+
+        if (!vehiculo) {
+          return interaction.editReply("❌ Vehículo no existe.");
+        }
+
+        db.prepare(`UPDATE units SET vehicle_id = NULL WHERE vehicle_id = ?`).run(vehiculo.id);
+        db.prepare(`DELETE FROM vehicles WHERE id = ?`).run(vehiculo.id);
+
+        await actualizarPlantilla();
+
+        return interaction.editReply(`🗑️ Vehículo **${nombre}** eliminado.`);
+      }
     }
 
-    if (sub === "zona-añadir") {
+    if (commandName === "zona") {
+      await interaction.deferReply();
 
-  const unidadNombre = limpiarNombre(
-    interaction.options.getString("unidad")
-  );
+      const sub = options.getSubcommand();
+      const nombre = limpiarNombre(options.getString("nombre"));
 
-  const zonaNombre = limpiarNombre(
-    interaction.options.getString("zona")
-  );
+      if (sub === "crear") {
+        const descripcion = options.getString("descripcion");
 
-  const unidad = getUnidad(unidadNombre);
-  const zona = getZona(zonaNombre);
+        if (getZona(nombre)) {
+          return interaction.editReply(`❌ La zona **${nombre}** ya existe.`);
+        }
 
-  if (!unidad) {
-    return interaction.editReply(`❌ Unidad no existe`);
-  }
+        db.prepare(`
+          INSERT INTO zones (name, description)
+          VALUES (?, ?)
+        `).run(nombre, descripcion);
 
-  if (!zona) {
-    return interaction.editReply(`❌ Zona no existe`);
-  }
+        return interaction.editReply(`📍 Zona **${nombre}** creada.`);
+      }
 
-  db.prepare(`
-    INSERT OR IGNORE INTO unit_zones (unit_id, zone_id)
-    VALUES (?, ?)
-  `).run(unidad.id, zona.id);
+      if (sub === "ver") {
+        const zona = getZona(nombre);
 
-  await actualizarPlantilla();
+        if (!zona) {
+          return interaction.editReply("❌ Zona no existe.");
+        }
 
-  return interaction.editReply(`📍 Zona añadida`);
-}
+        return interaction.editReply(`📍 **${zona.name}**\n\n${zona.description}`);
+      }
+
+      if (sub === "eliminar") {
+        const zona = getZona(nombre);
+
+        if (!zona) {
+          return interaction.editReply("❌ Zona no existe.");
+        }
+
+        db.prepare(`DELETE FROM unit_zones WHERE zone_id = ?`).run(zona.id);
+        db.prepare(`DELETE FROM zones WHERE id = ?`).run(zona.id);
+
+        await actualizarPlantilla();
+
+        return interaction.editReply(`🗑️ Zona **${nombre}** eliminada.`);
+      }
     }
 
- if (sub === "zona-quitar") {
+    if (commandName === "plantilla") {
+      await interaction.deferReply();
 
-  const unidadNombre = limpiarNombre(
-    interaction.options.getString("unidad")
-  );
+      const sub = options.getSubcommand();
 
-  const zonaNombre = limpiarNombre(
-    interaction.options.getString("zona")
-  );
+      if (sub === "crear") {
+        const msg = await interaction.channel.send(generarPlantilla());
 
-  const unidad = getUnidad(unidadNombre);
-  const zona = getZona(zonaNombre);
+        db.prepare(`DELETE FROM plantilla`).run();
 
-  if (!unidad || !zona) {
-    return interaction.editReply(`❌ Datos incorrectos`);
-  }
+        db.prepare(`
+          INSERT INTO plantilla (channel_id, message_id)
+          VALUES (?, ?)
+        `).run(interaction.channel.id, msg.id);
 
-  db.prepare(`
-    DELETE FROM unit_zones
-    WHERE unit_id = ? AND zone_id = ?
-  `).run(unidad.id, zona.id);
+        return interaction.editReply("✅ Plantilla creada.");
+      }
 
-  await actualizarPlantilla();
+      if (sub === "actualizar") {
+        await actualizarPlantilla();
+        return interaction.editReply("🔄 Plantilla actualizada.");
+      }
 
-  return interaction.editReply(`📍 Zona quitada`);
-}
-    }
-  }
+      if (sub === "limpiar") {
+        db.prepare(`DELETE FROM unit_members`).run();
+        db.prepare(`DELETE FROM unit_zones`).run();
+        db.prepare(`UPDATE units SET vehicle_id = NULL`).run();
 
-  // 🔹 ZONA
-if (interaction.commandName === "zona") {
-  await interaction.deferReply();
+        await actualizarPlantilla();
 
-  const sub = interaction.options.getSubcommand();
-
-  const nombre = limpiarNombre(
-    interaction.options.getString("nombre")
-  );
-
-  // ---------------- CREAR ----------------
-  if (sub === "crear") {
-
-    if (getZona(nombre)) {
-      return interaction.editReply(
-        `❌ La zona **${nombre}** ya existe`
-      );
+        return interaction.editReply("🧹 Plantilla limpiada.");
+      }
     }
 
-    const descripcion =
-      interaction.options.getString("descripcion");
+  } catch (error) {
+    console.error("ERROR:", error);
 
-    db.prepare(`
-      INSERT INTO zones (name, description)
-      VALUES (?, ?)
-    `).run(nombre, descripcion);
-
-    return interaction.editReply(
-      `📍 Zona **${nombre}** creada`
-    );
-  }
-
-  // ---------------- ELIMINAR ----------------
-  if (sub === "eliminar") {
-
-    const zona = getZona(nombre);
-
-    if (!zona) {
-      return interaction.editReply(
-        `❌ Zona no existe`
-      );
+    if (interaction.deferred || interaction.replied) {
+      return interaction.editReply("❌ Ha ocurrido un error.");
     }
 
-    db.prepare(`
-      DELETE FROM unit_zones
-      WHERE zone_id = ?
-    `).run(zona.id);
-
-    db.prepare(`
-      DELETE FROM zones
-      WHERE id = ?
-    `).run(zona.id);
-
-    await actualizarPlantilla();
-
-    return interaction.editReply(
-      `🗑️ Zona eliminada`
-    );
-  }
-
-  // ---------------- VER ----------------
-  if (sub === "ver") {
-
-    const zona = getZona(nombre);
-
-    if (!zona) {
-      return interaction.editReply(
-        `❌ Zona no existe`
-      );
-    }
-
-    return interaction.editReply(
-      `📍 **${zona.name}**\n\n${zona.description}`
-    );
-  }
-}
-
-  // ---------------- PLANTILLA ----------------
-  if (commandName === "plantilla") {
-    await interaction.deferReply();
-    const sub = options.getSubcommand();
-
-    if (sub === "crear") {
-      const msg = await interaction.channel.send(generarPlantilla());
-
-      db.prepare(`DELETE FROM plantilla`).run();
-      db.prepare(`
-        INSERT INTO plantilla (channel_id, message_id)
-        VALUES (?, ?)
-      `).run(interaction.channel.id, msg.id);
-
-      return interaction.editReply("Plantilla creada");
-    }
-
-    if (sub === "limpiar") {
-      db.prepare(`DELETE FROM unit_members`).run();
-      db.prepare(`DELETE FROM unit_zones`).run();
-      db.prepare(`UPDATE units SET vehicle_id = NULL`).run();
-
-      await actualizarPlantilla();
-
-      return interaction.editReply("Plantilla limpiada");
-    }
+    return interaction.reply("❌ Ha ocurrido un error.");
   }
 });
+
+if (!process.env.TOKEN) {
+  console.error("Falta TOKEN.");
+  process.exit(1);
+}
 
 client.login(process.env.TOKEN);
