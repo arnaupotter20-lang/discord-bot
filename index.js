@@ -195,58 +195,142 @@ client.on("interactionCreate", async interaction => {
     }
 
     if (sub === "zona-añadir") {
-      const zona = getZona(options.getString("zona"));
-      const unidad = getUnidad(nombre);
 
-      db.prepare(`
-        INSERT OR IGNORE INTO unit_zones (unit_id, zone_id)
-        VALUES (?, ?)
-      `).run(unidad.id, zona.id);
+  const unidadNombre = limpiarNombre(
+    interaction.options.getString("unidad")
+  );
 
-      await actualizarPlantilla();
+  const zonaNombre = limpiarNombre(
+    interaction.options.getString("zona")
+  );
 
-      return interaction.editReply("Zona añadida");
+  const unidad = getUnidad(unidadNombre);
+  const zona = getZona(zonaNombre);
+
+  if (!unidad) {
+    return interaction.editReply(`❌ Unidad no existe`);
+  }
+
+  if (!zona) {
+    return interaction.editReply(`❌ Zona no existe`);
+  }
+
+  db.prepare(`
+    INSERT OR IGNORE INTO unit_zones (unit_id, zone_id)
+    VALUES (?, ?)
+  `).run(unidad.id, zona.id);
+
+  await actualizarPlantilla();
+
+  return interaction.editReply(`📍 Zona añadida`);
+}
     }
 
-    if (sub === "zona-quitar") {
-      const zona = getZona(options.getString("zona"));
-      const unidad = getUnidad(nombre);
+ if (sub === "zona-quitar") {
 
-      db.prepare(`
-        DELETE FROM unit_zones
-        WHERE unit_id = ? AND zone_id = ?
-      `).run(unidad.id, zona.id);
+  const unidadNombre = limpiarNombre(
+    interaction.options.getString("unidad")
+  );
 
-      await actualizarPlantilla();
+  const zonaNombre = limpiarNombre(
+    interaction.options.getString("zona")
+  );
 
-      return interaction.editReply("Zona quitada");
+  const unidad = getUnidad(unidadNombre);
+  const zona = getZona(zonaNombre);
+
+  if (!unidad || !zona) {
+    return interaction.editReply(`❌ Datos incorrectos`);
+  }
+
+  db.prepare(`
+    DELETE FROM unit_zones
+    WHERE unit_id = ? AND zone_id = ?
+  `).run(unidad.id, zona.id);
+
+  await actualizarPlantilla();
+
+  return interaction.editReply(`📍 Zona quitada`);
+}
     }
   }
 
-  // ---------------- ZONA ----------------
-  if (commandName === "zona") {
-    await interaction.deferReply();
-    const sub = options.getSubcommand();
-    const nombre = limpiarNombre(options.getString("nombre"));
+  // 🔹 ZONA
+if (interaction.commandName === "zona") {
+  await interaction.deferReply();
 
-    if (sub === "crear") {
-      db.prepare(`INSERT INTO zones (name) VALUES (?)`).run(nombre);
-      return interaction.editReply("Zona creada");
+  const sub = interaction.options.getSubcommand();
+
+  const nombre = limpiarNombre(
+    interaction.options.getString("nombre")
+  );
+
+  // ---------------- CREAR ----------------
+  if (sub === "crear") {
+
+    if (getZona(nombre)) {
+      return interaction.editReply(
+        `❌ La zona **${nombre}** ya existe`
+      );
     }
 
-    if (sub === "eliminar") {
-      const zona = getZona(nombre);
+    const descripcion =
+      interaction.options.getString("descripcion");
 
-      db.prepare(`DELETE FROM unit_zones WHERE zone_id = ?`).run(zona.id);
-      db.prepare(`DELETE FROM zones WHERE id = ?`).run(zona.id);
+    db.prepare(`
+      INSERT INTO zones (name, description)
+      VALUES (?, ?)
+    `).run(nombre, descripcion);
 
-      return interaction.editReply("Zona eliminada");
-    }
-
-    if (sub === "ver") {
-      return interaction.editReply(`Zona: ${nombre}`);
-    }
+    return interaction.editReply(
+      `📍 Zona **${nombre}** creada`
+    );
   }
+
+  // ---------------- ELIMINAR ----------------
+  if (sub === "eliminar") {
+
+    const zona = getZona(nombre);
+
+    if (!zona) {
+      return interaction.editReply(
+        `❌ Zona no existe`
+      );
+    }
+
+    db.prepare(`
+      DELETE FROM unit_zones
+      WHERE zone_id = ?
+    `).run(zona.id);
+
+    db.prepare(`
+      DELETE FROM zones
+      WHERE id = ?
+    `).run(zona.id);
+
+    await actualizarPlantilla();
+
+    return interaction.editReply(
+      `🗑️ Zona eliminada`
+    );
+  }
+
+  // ---------------- VER ----------------
+  if (sub === "ver") {
+
+    const zona = getZona(nombre);
+
+    if (!zona) {
+      return interaction.editReply(
+        `❌ Zona no existe`
+      );
+    }
+
+    return interaction.editReply(
+      `📍 **${zona.name}**\n\n${zona.description}`
+    );
+  }
+}
 
   // ---------------- PLANTILLA ----------------
   if (commandName === "plantilla") {
