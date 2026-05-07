@@ -18,7 +18,7 @@ function vehiculoOption(option) {
 }
 
 const categorias = [
-  { name: "H-50", value: "H50" },
+  { name: "H-50", value: "H-50" },
   { name: "Supervisora", value: "SUPERVISORA" },
   { name: "GAC", value: "GAC" },
   { name: "UPR", value: "UPR" },
@@ -146,37 +146,49 @@ const commands = [
         .addStringOption(vehiculoOption)
     ),
 
-  // 🔹 ZONA
-  new SlashCommandBuilder()
-    .setName("zona")
-    .setDescription("Gestionar zonas")
-
-    .addSubcommand(sub =>
-      sub
-        .setName("crear")
-        .setDescription("Crear zona")
-        .addStringOption(option =>
-          option.setName("nombre").setDescription("Nombre").setRequired(true)
-        )
-    )
-
-    .addSubcommand(sub =>
-      sub
-        .setName("eliminar")
-        .setDescription("Eliminar zona")
-        .addStringOption(option =>
-          option.setName("nombre").setDescription("Zona").setRequired(true)
-        )
-    )
-
-    .addSubcommand(sub =>
-      sub
-        .setName("ver")
-        .setDescription("Ver zona")
-        .addStringOption(option =>
-          option.setName("nombre").setDescription("Zona").setRequired(true)
-        )
-    ),
+// 🔹 ZONA
+new SlashCommandBuilder()
+  .setName("zona")
+  .setDescription("Gestionar zonas")
+  .addSubcommand(sub =>
+    sub
+      .setName("crear")
+      .setDescription("Crear zona")
+      .addStringOption(option =>
+        option
+          .setName("nombre")
+          .setDescription("Nombre")
+          .setRequired(true)
+      )
+      .addStringOption(option =>
+        option
+          .setName("descripcion")
+          .setDescription("Descripción")
+          .setRequired(true)
+      )
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("eliminar")
+      .setDescription("Eliminar zona")
+      .addStringOption(option =>
+        option
+          .setName("nombre")
+          .setDescription("Zona")
+          .setRequired(true)
+      )
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName("ver")
+      .setDescription("Ver zona")
+      .addStringOption(option =>
+        option
+          .setName("nombre")
+          .setDescription("Zona")
+          .setRequired(true)
+      )
+  ),
 
   // 🔹 PLANTILLA
   new SlashCommandBuilder()
