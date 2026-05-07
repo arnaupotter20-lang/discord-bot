@@ -42,22 +42,22 @@ const categorias = [
 ];
 
 const commands = [
-  // 🔹 PING
   new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Comprueba si el bot responde"),
 
-  // 🔹 UNIDAD
   new SlashCommandBuilder()
     .setName("unidad")
     .setDescription("Gestionar unidades")
-
     .addSubcommand(sub =>
       sub
         .setName("crear")
         .setDescription("Crear una unidad")
         .addStringOption(option =>
-          option.setName("nombre").setDescription("Nombre de la unidad").setRequired(true)
+          option
+            .setName("nombre")
+            .setDescription("Nombre de la unidad")
+            .setRequired(true)
         )
         .addStringOption(option =>
           option
@@ -67,27 +67,30 @@ const commands = [
             .addChoices(...categorias)
         )
     )
-
     .addSubcommand(sub =>
       sub
         .setName("asignar")
         .setDescription("Asignar usuario")
         .addUserOption(option =>
-          option.setName("usuario").setDescription("Usuario").setRequired(true)
+          option
+            .setName("usuario")
+            .setDescription("Usuario")
+            .setRequired(true)
         )
         .addStringOption(unidadOption)
     )
-
     .addSubcommand(sub =>
       sub
         .setName("quitar")
         .setDescription("Quitar usuario")
         .addUserOption(option =>
-          option.setName("usuario").setDescription("Usuario").setRequired(true)
+          option
+            .setName("usuario")
+            .setDescription("Usuario")
+            .setRequired(true)
         )
         .addStringOption(unidadOption)
     )
-
     .addSubcommand(sub =>
       sub
         .setName("vehiculo")
@@ -95,56 +98,53 @@ const commands = [
         .addStringOption(unidadOption)
         .addStringOption(vehiculoOption)
     )
-
     .addSubcommand(sub =>
       sub
         .setName("vehiculo-quitar")
         .setDescription("Quitar vehículo")
         .addStringOption(unidadOption)
     )
-
     .addSubcommand(sub =>
       sub
         .setName("zona-añadir")
         .setDescription("Añadir zona")
         .addStringOption(unidadOption)
         .addStringOption(zonaOption)
-        )
     )
-
     .addSubcommand(sub =>
       sub
         .setName("zona-quitar")
         .setDescription("Quitar zona")
         .addStringOption(unidadOption)
         .addStringOption(zonaOption)
-        )
     ),
 
-  // 🔹 VEHICULO
   new SlashCommandBuilder()
     .setName("vehiculo")
     .setDescription("Gestionar vehículos")
-
     .addSubcommand(sub =>
       sub
         .setName("crear")
         .setDescription("Crear vehículo")
         .addStringOption(option =>
-          option.setName("nombre").setDescription("Nombre").setRequired(true)
+          option
+            .setName("nombre")
+            .setDescription("Nombre")
+            .setRequired(true)
         )
         .addStringOption(option =>
-          option.setName("descripcion").setDescription("Descripción").setRequired(true)
+          option
+            .setName("descripcion")
+            .setDescription("Descripción")
+            .setRequired(true)
         )
     )
-
     .addSubcommand(sub =>
       sub
         .setName("eliminar")
         .setDescription("Eliminar vehículo")
         .addStringOption(vehiculoOption)
     )
-
     .addSubcommand(sub =>
       sub
         .setName("ver")
@@ -152,65 +152,56 @@ const commands = [
         .addStringOption(vehiculoOption)
     ),
 
-// 🔹 ZONA
-new SlashCommandBuilder()
-  .setName("zona")
-  .setDescription("Gestionar zonas")
-  .addSubcommand(sub =>
-    sub
-      .setName("crear")
-      .setDescription("Crear zona")
-      .addStringOption(option =>
-        option
-          .setName("nombre")
-          .setDescription("Nombre")
-          .setRequired(true)
-      )
-      .addStringOption(option =>
-        option
-          .setName("descripcion")
-          .setDescription("Descripción")
-          .setRequired(true)
-      )
-  )
-  .addSubcommand(sub =>
-    sub
-      .setName("eliminar")
-      .setDescription("Eliminar zona")
-      .addStringOption(option =>
-        option
-          .setName("nombre")
-          .setDescription("Zona")
-          .setRequired(true)
-      )
-  )
-  .addSubcommand(sub =>
-    sub
-      .setName("ver")
-      .setDescription("Ver zona")
-      .addStringOption(option =>
-        option
-          .setName("nombre")
-          .setDescription("Zona")
-          .setRequired(true)
-      )
-  ),
+  new SlashCommandBuilder()
+    .setName("zona")
+    .setDescription("Gestionar zonas")
+    .addSubcommand(sub =>
+      sub
+        .setName("crear")
+        .setDescription("Crear zona")
+        .addStringOption(option =>
+          option
+            .setName("nombre")
+            .setDescription("Nombre")
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName("descripcion")
+            .setDescription("Descripción")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName("eliminar")
+        .setDescription("Eliminar zona")
+        .addStringOption(zonaOption)
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName("ver")
+        .setDescription("Ver zona")
+        .addStringOption(zonaOption)
+    ),
 
-  // 🔹 PLANTILLA
   new SlashCommandBuilder()
     .setName("plantilla")
     .setDescription("Gestionar plantilla")
-
     .addSubcommand(sub =>
-      sub.setName("crear").setDescription("Crear plantilla")
+      sub
+        .setName("crear")
+        .setDescription("Crear plantilla")
     )
-
     .addSubcommand(sub =>
-      sub.setName("actualizar").setDescription("Actualizar plantilla")
+      sub
+        .setName("actualizar")
+        .setDescription("Actualizar plantilla")
     )
-
     .addSubcommand(sub =>
-      sub.setName("limpiar").setDescription("Limpiar plantilla")
+      sub
+        .setName("limpiar")
+        .setDescription("Limpiar plantilla")
     )
 ].map(command => command.toJSON());
 
