@@ -17,6 +17,14 @@ function vehiculoOption(option) {
     .setAutocomplete(true);
 }
 
+function zonaOption(option) {
+  return option
+    .setName("zona")
+    .setDescription("Selecciona la zona")
+    .setRequired(true)
+    .setAutocomplete(true);
+}
+
 const categorias = [
   { name: "H-50", value: "H-50" },
   { name: "Supervisora", value: "SUPERVISORA" },
@@ -100,8 +108,7 @@ const commands = [
         .setName("zona-añadir")
         .setDescription("Añadir zona")
         .addStringOption(unidadOption)
-        .addStringOption(option =>
-          option.setName("zona").setDescription("Zona").setRequired(true)
+        .addStringOption(zonaOption)
         )
     )
 
@@ -110,8 +117,7 @@ const commands = [
         .setName("zona-quitar")
         .setDescription("Quitar zona")
         .addStringOption(unidadOption)
-        .addStringOption(option =>
-          option.setName("zona").setDescription("Zona").setRequired(true)
+        .addStringOption(zonaOption)
         )
     ),
 
