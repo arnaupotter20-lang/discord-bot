@@ -147,40 +147,43 @@ const commands = [
   // ---------------- VEHICULO ----------------
 
   new SlashCommandBuilder()
-    .setName("vehiculo")
-    .setDescription("Gestionar vehículos")
+  .setName("vehiculo")
+  .setDescription("Gestionar vehículos")
 
-    .addSubcommand(sub =>
-      sub
-        .setName("crear")
-        .setDescription("Crear vehículo")
-        .addStringOption(option =>
-          option
-            .setName("nombre")
-            .setDescription("Nombre")
-            .setRequired(true)
-        )
-        .addStringOption(option =>
-          option
-            .setName("descripcion")
-            .setDescription("Descripción")
-            .setRequired(true)
-        )
-    )
+  // CREAR
+  .addSubcommand(sub =>
+    sub
+      .setName("crear")
+      .setDescription("Crear vehículo")
+      .addStringOption(option =>
+        option.setName("nombre").setDescription("Nombre").setRequired(true)
+      )
+      .addStringOption(option =>
+        option.setName("descripcion").setDescription("Descripción").setRequired(true)
+      )
+  )
 
-    .addSubcommand(sub =>
-      sub
-        .setName("ver")
-        .setDescription("Ver vehículo")
-        .addStringOption(vehiculoOption)
-    )
+  // IMAGEN
+  .addSubcommand(sub =>
+    sub
+      .setName("imagen")
+      .setDescription("Añadir/cambiar imagen del vehículo")
+      .addStringOption(vehiculoOption)
+      .addAttachmentOption(option =>
+        option
+          .setName("imagen")
+          .setDescription("Imagen del vehículo")
+          .setRequired(true)
+      )
+  )
 
-    .addSubcommand(sub =>
-      sub
-        .setName("eliminar")
-        .setDescription("Eliminar vehículo")
-        .addStringOption(vehiculoOption)
-    ),
+  // VER
+  .addSubcommand(sub =>
+    sub
+      .setName("ver")
+      .setDescription("Ver vehículo")
+      .addStringOption(vehiculoOption)
+  )
 
   // ---------------- ZONA ----------------
 
