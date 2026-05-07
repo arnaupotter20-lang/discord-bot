@@ -1,6 +1,8 @@
 require("dotenv").config();
 const { REST, Routes, SlashCommandBuilder } = require("discord.js");
 
+// ---------------- OPCIONES AUTOCOMPLETE ----------------
+
 function unidadOption(option) {
   return option
     .setName("unidad")
@@ -25,6 +27,8 @@ function zonaOption(option) {
     .setAutocomplete(true);
 }
 
+// ---------------- CATEGORÍAS ----------------
+
 const categorias = [
   { name: "H-50", value: "H-50" },
   { name: "Supervisora", value: "SUPERVISORA" },
@@ -41,14 +45,22 @@ const categorias = [
   { name: "UEGC", value: "UEGC" }
 ];
 
+// ---------------- COMANDOS ----------------
+
 const commands = [
+
+  // ---------------- PING ----------------
+
   new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Comprueba si el bot responde"),
 
+  // ---------------- UNIDAD ----------------
+
   new SlashCommandBuilder()
     .setName("unidad")
     .setDescription("Gestionar unidades")
+
     .addSubcommand(sub =>
       sub
         .setName("crear")
@@ -67,6 +79,14 @@ const commands = [
             .addChoices(...categorias)
         )
     )
+
+    .addSubcommand(sub =>
+      sub
+        .setName("eliminar")
+        .setDescription("Eliminar una unidad")
+        .addStringOption(unidadOption)
+    )
+
     .addSubcommand(sub =>
       sub
         .setName("asignar")
@@ -79,6 +99,7 @@ const commands = [
         )
         .addStringOption(unidadOption)
     )
+
     .addSubcommand(sub =>
       sub
         .setName("quitar")
@@ -91,6 +112,7 @@ const commands = [
         )
         .addStringOption(unidadOption)
     )
+
     .addSubcommand(sub =>
       sub
         .setName("vehiculo")
@@ -98,12 +120,14 @@ const commands = [
         .addStringOption(unidadOption)
         .addStringOption(vehiculoOption)
     )
+
     .addSubcommand(sub =>
       sub
         .setName("vehiculo-quitar")
         .setDescription("Quitar vehículo")
         .addStringOption(unidadOption)
     )
+
     .addSubcommand(sub =>
       sub
         .setName("zona-añadir")
@@ -111,6 +135,7 @@ const commands = [
         .addStringOption(unidadOption)
         .addStringOption(zonaOption)
     )
+
     .addSubcommand(sub =>
       sub
         .setName("zona-quitar")
@@ -119,9 +144,12 @@ const commands = [
         .addStringOption(zonaOption)
     ),
 
+  // ---------------- VEHICULO ----------------
+
   new SlashCommandBuilder()
     .setName("vehiculo")
     .setDescription("Gestionar vehículos")
+
     .addSubcommand(sub =>
       sub
         .setName("crear")
@@ -139,22 +167,27 @@ const commands = [
             .setRequired(true)
         )
     )
-    .addSubcommand(sub =>
-      sub
-        .setName("eliminar")
-        .setDescription("Eliminar vehículo")
-        .addStringOption(vehiculoOption)
-    )
+
     .addSubcommand(sub =>
       sub
         .setName("ver")
         .setDescription("Ver vehículo")
         .addStringOption(vehiculoOption)
+    )
+
+    .addSubcommand(sub =>
+      sub
+        .setName("eliminar")
+        .setDescription("Eliminar vehículo")
+        .addStringOption(vehiculoOption)
     ),
+
+  // ---------------- ZONA ----------------
 
   new SlashCommandBuilder()
     .setName("zona")
     .setDescription("Gestionar zonas")
+
     .addSubcommand(sub =>
       sub
         .setName("crear")
@@ -172,38 +205,48 @@ const commands = [
             .setRequired(true)
         )
     )
-    .addSubcommand(sub =>
-      sub
-        .setName("eliminar")
-        .setDescription("Eliminar zona")
-        .addStringOption(zonaOption)
-    )
+
     .addSubcommand(sub =>
       sub
         .setName("ver")
         .setDescription("Ver zona")
         .addStringOption(zonaOption)
+    )
+
+    .addSubcommand(sub =>
+      sub
+        .setName("eliminar")
+        .setDescription("Eliminar zona")
+        .addStringOption(zonaOption)
     ),
+
+  // ---------------- PLANTILLA ----------------
 
   new SlashCommandBuilder()
     .setName("plantilla")
     .setDescription("Gestionar plantilla")
+
     .addSubcommand(sub =>
       sub
         .setName("crear")
         .setDescription("Crear plantilla")
     )
+
     .addSubcommand(sub =>
       sub
         .setName("actualizar")
         .setDescription("Actualizar plantilla")
     )
+
     .addSubcommand(sub =>
       sub
         .setName("limpiar")
         .setDescription("Limpiar plantilla")
     )
+
 ].map(command => command.toJSON());
+
+// ---------------- REGISTRO ----------------
 
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
